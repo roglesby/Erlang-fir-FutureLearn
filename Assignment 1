@@ -1,0 +1,96 @@
+-module(exercise).
+-export([bits/1,bitstail/1,bitstail/2,
+	length/2,min2/2,max2/2,area/1,perimiter/1,enclose/1,test/0]).
+
+%  Sum the binary bits
+%  N rem 2 gives the least significant binary digit 0 or 1
+%  If N is even, then N rem 2 is zero, otherwise 1
+bits(0) -> 0;
+bits(N) -> bits(N div 2) + N rem 2.
+
+bitstail(N) -> bitstail(N,0).
+bitstail(0,ACC) -> ACC;
+bitstail(N,ACC)-> bitstail(N div 2,ACC + N rem 2).
+
+%  Which version of bits() or bitstail() is best?
+%  bits(N) is easier to understand.
+%  I guess bitstail uses lest stack as it resolves each iteration so is best.
+
+%  Here are the shapes
+%  {circle,{X,Y},R}
+%   Circle centred at {X,Y} with radius R}
+%  {rectangle, {X,Y},H,W}
+%   Rectangle centred at {X,Y} of hieight H and width W}
+%  {triangle,{X1,Y1},{X2,Y2},{X3,Y3}}
+%   Triangle with vertices {X1,Y1},{X2,Y2},{X3,Y3}
+
+%   The distance between two points {XA,YA} and {XB,YB}
+length({XA,YA},{XB,YB}) ->
+	math:sqrt((XA-XB)*(XA-XB)+(YA-YB)*(YA-YB)).
+	
+%   Some helper functions
+%   The maximum of two numbers
+	max2(X,Y) when X > Y -> X;
+	max2(_X,Y)-> Y.
+%   The minimum of two numbers
+	min2(X,Y) when X < Y -> X;
+	min2(_X,Y) -> Y.
+	
+%   The perimiter of different shapes
+perimiter({circle,{_,_},R})->
+	2*math:pi()*R;
+perimiter({rectangle,{_,_},H,W})->
+	(H + W + H + W);
+perimiter({triangle,{X1,Y1},{X2,Y2},{X3,Y3}}) ->
+	L1=length({X1,Y1},{X2,Y2}),
+	L2=length({X2,Y2},{X3,Y3}),
+	L3=length({X3,Y3},{X1,Y1}),
+	(L1+L2+L3).
+
+%   The area of different shapes
+area({circle,{_,_},R}) ->
+	math:pi()*R*R;
+area({rectangle,{_,_},H,W}) ->
+	H*W;
+area({triangle,{X1,Y1},{X2,Y2},{X3,Y3}})->
+	L1=length({X1,Y1},{X2,Y2}),
+	L2=length({X2,Y2},{X3,Y3}),
+	L3=length({X3,Y3},{X1,Y1}),
+	S=(L1+L2+L3)/2,
+	math:sqrt(S*(S-L1)*(S-L2)*(S-L3)).
+%   Could use perimiter function to calc S, but this recalcs L1,L2 and L3
+
+%   What minimal rectangle will enclose a shape?
+enclose({rectangle,{X,Y},H,W}) ->
+	{rectangle,{X,Y},H,W};
+enclose({circle,{X,Y},R}) ->
+	{rectangle,{X,Y},2*R,2*R};
+enclose({triangle,{X1,Y1},{X2,Y2},{X3,Y3}})->
+	XMIN=min2(X1,min2(X2,X3)),
+	XMAX=max2(X1,max2(X2,X3)),
+	YMIN=min2(Y1,min2(Y2,Y3)),
+	YMAX=max2(Y1,max2(Y2,Y3)),
+%	The centre of the rectangle needs calculating too.. 
+	{rectangle,{(XMIN+XMAX)/2,(YMIN+YMAX)/2},YMAX-YMIN,XMAX-XMIN}.
+
+%   To envoke tests, run exercise:test() and hopefully get all true results
+test() -> {
+		bits(7)==3,
+		bits(8)==1,
+		bitstail(7)==3,
+		bitstail(8)==1,
+		bitstail(123456789)== bits(123456789),
+		length({0,3},{4,0})==5.0,
+		perimiter({circle,{1,1},5})==10*math:pi(),
+		perimiter({rectangle,{2,2},3,4})==14.0,
+		perimiter({triangle,{1,5},{4,5},{4,1}})==12.0,
+		area({circle,{1,1},5})==25*math:pi(),
+		area({rectangle,{2,2},3,4})==12.0,		
+		area({triangle,{1,5},{4,5},{4,1}})==6.0,
+		enclose({circle,{1,1},1})=={rectangle,{1,1},2,2},
+		enclose({rectangle,{2,2},3,4})=={rectangle,{2,2},3,4},
+		enclose({triangle,{1,5},{4,5},{4,1}})=={rectangle,{2.5,3},4,3}
+		}.
+
+
+
