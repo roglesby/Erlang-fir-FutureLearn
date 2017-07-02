@@ -1,6 +1,6 @@
 -module(exercise).
 -export([bits/1,bitstail/1,bitstail/2,
-	length/2,min2/2,max2/2,area/1,perimiter/1,enclose/1,test/0]).
+	length/2,min2/2,max2/2,area/1,perimeter/1,enclose/1,test/0]).
 
 %  Sum the binary bits
 %  N rem 2 gives the least significant binary digit 0 or 1
@@ -58,7 +58,7 @@ area({triangle,{X1,Y1},{X2,Y2},{X3,Y3}})->
 	L3=length({X3,Y3},{X1,Y1}),
 	S=(L1+L2+L3)/2,
 	math:sqrt(S*(S-L1)*(S-L2)*(S-L3)).
-%   Could use perimiter function to calc S, but this recalcs L1,L2 and L3
+%   Could use perimeter function to calc S, but this recalcs L1,L2 and L3
 
 %   What minimal rectangle will enclose a shape?
 enclose({rectangle,{X,Y},H,W}) ->
