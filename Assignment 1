@@ -36,12 +36,12 @@ length({XA,YA},{XB,YB}) ->
 	min2(X,Y) when X < Y -> X;
 	min2(_X,Y) -> Y.
 	
-%   The perimiter of different shapes
-perimiter({circle,{_,_},R})->
+%   The perimeter of different shapes
+perimeter({circle,{_,_},R})->
 	2*math:pi()*R;
-perimiter({rectangle,{_,_},H,W})->
+perimeter({rectangle,{_,_},H,W})->
 	(H + W + H + W);
-perimiter({triangle,{X1,Y1},{X2,Y2},{X3,Y3}}) ->
+perimeter({triangle,{X1,Y1},{X2,Y2},{X3,Y3}}) ->
 	L1=length({X1,Y1},{X2,Y2}),
 	L2=length({X2,Y2},{X3,Y3}),
 	L3=length({X3,Y3},{X1,Y1}),
@@ -81,9 +81,9 @@ test() -> {
 		bitstail(8)==1,
 		bitstail(123456789)== bits(123456789),
 		length({0,3},{4,0})==5.0,
-		perimiter({circle,{1,1},5})==10*math:pi(),
-		perimiter({rectangle,{2,2},3,4})==14.0,
-		perimiter({triangle,{1,5},{4,5},{4,1}})==12.0,
+		perimeter({circle,{1,1},5})==10*math:pi(),
+		perimeter({rectangle,{2,2},3,4})==14.0,
+		perimeter({triangle,{1,5},{4,5},{4,1}})==12.0,
 		area({circle,{1,1},5})==25*math:pi(),
 		area({rectangle,{2,2},3,4})==12.0,		
 		area({triangle,{1,5},{4,5},{4,1}})==6.0,
