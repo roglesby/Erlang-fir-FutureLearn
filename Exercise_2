@@ -1,0 +1,178 @@
+-module(ex).
+-export([find/2,catalog/1,getty/0,dickens/0]).
+
+%  Using text from Gettysburg Address or Dickens novel Christmas Carol
+%  we will index the words used in the text.
+
+%  To call the function use 
+%  		  GA=ex:catalog(ex:getty()).
+%       ex:find("dead",GA).         %to find the index for "dead" in Gettysburg Address
+%   gives
+%       {"dead",[{15,15},{22,22},{25,25}]}
+%   or 
+%       CC=ex:catalog(ex:dickens()).
+%       ex:find("today",CC).        %to find the index for "today" in Christmas Carol
+%   gives
+%       {"today",[{1575,1575},{3274,3274},{3525,3525},{3531,3531},{3533,3533}]}
+
+%  Texts are read using the given function get_file_contents()
+getty()->index:get_file_contents("gettysburg-address.txt").
+dickens()->index:get_file_contents("dickens-christmas.txt").
+
+%  To check the results, the find() function will extract the
+%  entry from the index for the given word.
+find(W,[])->{W,[]};
+find(W,[{W,Ps}|_])->{W,Ps};
+find(W,[_|Xs])->find(W,Xs).
+
+%  The catalog function will return a list in alphabetic order of 
+%  all the words used inthe text, together with page listings
+catalog(B)->page(dedup(mergesort(catalog1(B)))).
+catalog1(B)->backwards(nosimilar(backwards(catalog2(B)))).
+catalog2(B)->mergesort(nocommon(noshort(index(B)))).
+%  The paged(d) function takes a list of page_numbers and converts to a list of 
+%  tuples of {page_number,page_number}.
+paged([])->[];
+paged([P|Ps])->[{P,P}|paged(Ps)].
+
+%  The page_up function compresses the page listing into the output format.
+page_up([{P1,P2}])->[{P1,P2}];
+page_up([{P1,P2},{P2,P2}|Ps])->page_up([{P1,P2}|Ps]);
+page_up([{P1,P2},{P3,P3}|Ps])->
+	case P2==(P3-1) of 
+	true -> page_up([{P1,P3}|Ps]);
+	false-> [{P1,P2}|page_up([{P3,P3}|Ps])]
+	end.
+
+%  The page() function calls the paged and page_up functions to convert page numbers 	
+page([])->[];
+page([{X,P}|Xs])->[{X,page_up(paged(reverse(P)))}|page(Xs)].
+
+%   Takes out duplicates before compressing the page listing with page() function.
+dedup([])->[];
+dedup([{X,N}|Xs])->	dedup(X,[N],Xs).
+dedup(X,Ns,[])-> [{X,Ns}];
+dedup(X,[N|Nx],[{X,N}|Xs])-> dedup(X,[N|Nx],Xs);
+dedup(X,[N|Nx],[{X,N1}|Xs])-> dedup(X,[N1,N|Nx],Xs);
+dedup(X,Nx,[{X1,N1}|Xs])-> 
+	[{X,Nx}|dedup(X1,[N1],Xs)].
+
+%  This function looks for common word endings and removes the ending.
+%  A list of words in alphabetical order have their letters reversed prior to 
+%  calling nosimilar(W) funcion.
+%  if two adjacent words match except for an extra "s" or "d" then they are 
+%  assumed to be the same word.
+%  "decease" and "deceased" or "father" and "fathers"
+%  It is not fullproof as the words must be adjacent in the list to be 
+%  compared and it might also give dodgy similarities
+%  eg "she" and "shed" would be similar.  Sorry!     
+nosimilar([])->[];
+nosimilar([X|[]])->[X];
+nosimilar([{X,N},{[$s|X],N1}|Xs])	->
+	[{X,N}|nosimilar([{X,N1}|Xs])];
+nosimilar([{X,N},{[$d|X],N1}|Xs])	->
+	[{X,N}|nosimilar([{X,N1}|Xs])];
+nosimilar([{X,N}|Xs])->
+	[{X,N}|nosimilar(Xs)].
+
+%  The index(B) takes a text extract and returns all words together with the page number.
+%  The function returns a list of tuples {word,line_number}
+index([])	->	[];
+index(L)	->  index_lines(L,1).
+index_lines([],_)->[];
+index_lines([L|Lx],N)-> 
+	join(index_line(nopunct(nocaps(L)),[],N),index_lines(Lx,N+1)).
+index_line([],W,N)->[{reverse(W),N}];
+index_line([L|Lx],W,N)-> 
+	case L of
+	32 -> [{reverse(W),N}|index_line(Lx,[],N)];
+	[]  -> [{reverse(W),N}];
+	_	-> index_line(Lx,[L|W],N)
+	end.
+
+%  The nopunct(L) function takes a list of word line_number tuples and removes any 
+%  punctuation or other non alphabetic characters from the word and returns
+%  a list of tuples {word,line_number} 	
+nopunct([]) -> [];
+nopunct([X|Xs]) ->
+    case lists:member( X,"()`-.,!?\\;:\t\'\"\"" ) of
+	true ->
+	    nopunct(Xs);
+	false ->
+	    [ X | nopunct(Xs) ]
+    end.
+
+%  The nocaps(L) function takes a list of word line_number tuples of mixed case and 
+%  returns a list of tuples {word,line_number} with word in lower case.	
+nocaps([]) ->  [];
+nocaps([X|Xs]) -> [ nocap(X) | nocaps(Xs) ].
+nocap(X) ->
+    case $A =< X andalso X =< $Z of
+	true ->
+	    X+32;
+	false ->
+	    X
+    end.
+	
+%  The backwords(W) function takes a list of word line_number tuples and
+%  returns a list of word line number tuples with the letters of word reversed.
+backwards([])->[];
+backwards([{X,N}|Xs])->[{reverse(X),N}|backwards(Xs)].
+
+%  The nonshort(L) function takes a list of words and removes all words
+%  of three of less letters which are tobe excluded from our analysis.
+noshort([])->[];
+noshort([{X,N}|Xs])->
+		case lengths(X)<3 of
+		true-> noshort(Xs);
+		false-> [{X,N}|noshort(Xs)]
+		end.
+		
+%  The noncommon(L) function takes in a list of words and removes short common
+%  words which are to be excluded from the analysis. 
+nocommon([])->[];
+nocommon([{X,N}|Xs])->
+	case lists:member(X,["the","and","but","are","was","this","that","can"]) of
+		true -> nocommon(Xs);
+		false -> [{X,N}|nocommon(Xs)]
+		end.
+
+%  The following functions, written for previous exercises, were
+%  used as required.
+%  reverse(L) returns a list in reverse order 
+reverse(X)-> reverse(X,[]).
+reverse([],A)-> A;
+reverse([X|Xs],A)-> reverse(Xs,[X|A]).
+
+%  join(X,Y) adds list Y to the taail of list X
+join([],X)->X;
+join(X,[])->X;
+join([X|Xs],Y)->[X|join(Xs,Y)].
+
+%  lengths(L) returns the length of list L
+lengths([])->0;
+lengths([_|Xs])->1+lengths(Xs).
+
+%  mergesort(L) returns list L in alphabetic order
+mergesort([])->[];
+mergesort([X|[]])->[X];
+mergesort(S)->
+	[X,Y]=split(lengths(S)div 2,S),
+	inter(mergesort(Y),mergesort(X)).
+
+%  split(N,L) takes a list and splits the fisrt N characters into a separate list
+split(0,X)->[[],X];
+split(N,X)->split(N,X,[]).
+split(_,[],Y)->[[],Y];
+split(0,X,Y)->[X,Y];
+split(N,[X|Xs],Y)-> split(N-1,Xs,[X|Y]).
+
+%  inter(X,Y) takes two odered lists X and Y and returns a 
+%  a single sorted list by interleaving X and Y in sort order	
+inter([],X)->X;
+inter(X,[])->X;
+inter([X|Xs],[Y|Ys])->
+	case X < Y of
+		true  -> [X | inter(Xs,[Y|Ys])];
+		false -> [Y | inter([X|Xs],Ys)]
+	end.
